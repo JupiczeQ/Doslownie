@@ -205,6 +205,7 @@
             margin-bottom: 20px;
         }
     </style>
+    <script src="pl_pl.js"></script>
 </head>
 <body>
     <div class="header">
@@ -335,37 +336,22 @@
             return text.split('').map(char => polishChars[char] || char).join('');
         }
 
-        // Ładowanie słownika
-        async function loadDictionary() {
-            try {
-                const response = await fetch('pl_pl.txt');
-                if (!response.ok) {
-                    throw new Error('Nie można załadować słownika');
-                }
-                const wordsText = await response.text();
-                
-                // Podziel tekst na słowa i przefiltruj
-                const words = wordsText.split('\n')
-                    .map(word => word.trim().toLowerCase())
-                    .filter(word => word.length > 0);
-                
-                // Dodaj wszystkie słowa do zestawu
-                words.forEach(word => POLISH_WORDS.add(word));
-                
-                // Znajdź 5-literowe słowa do losowania
-                FIVE_LETTER_WORDS = words.filter(word => word.length === 5);
-                
-                console.log(`Załadowano ${POLISH_WORDS.size} słów, ${FIVE_LETTER_WORDS.length} 5-literowych`);
-                
-                // Inicjalizuj grę po załadowaniu słownika
-                currentWord = getTodaysWord();
-                console.log('Dzisiejsze słowo:', currentWord.toUpperCase());
-                
-                // Ukryj loading i pokaż grę
-                loading.style.display = 'none';
-                gameContainer.style.display = 'block';
-                
-                gameInitialized = true;
+        function loadDictionary() {
+        // POLISH_WORDS_ARRAY pochodzi z pl_pl.js
+        const words = POLISH_WORDS_ARRAY.map(word => word.trim().toLowerCase());
+    
+        words.forEach(word => POLISH_WORDS.add(word));
+        FIVE_LETTER_WORDS = words.filter(word => word.length === 5);
+    
+        console.log(`Załadowano ${POLISH_WORDS.size} słów, ${FIVE_LETTER_WORDS.length} 5-literowych`);
+    
+        currentWord = getTodaysWord();
+        console.log('Dzisiejsze słowo:', currentWord.toUpperCase());
+    
+        loading.style.display = 'none';
+        gameContainer.style.display = 'block';
+        gameInitialized = true;
+        }
                 
         // Funkcja do generowania seeda na podstawie godziny i minuty
         function generateSeed() {
