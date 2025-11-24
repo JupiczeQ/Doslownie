@@ -301,7 +301,7 @@
 
     <div class="message" id="message"></div>
 
-    <script src="pl_pl.js"></script>
+    <script src="pl_pl_v2.js"></script>
     <script>
         // Zmienne globalne
         let POLISH_WORDS = new Set();
@@ -327,7 +327,7 @@
         function loadDictionary() {
             try {
                 if (typeof POLISH_WORDS_ARRAY === 'undefined') {
-                    throw new Error("Nie znaleziono pliku pl_pl.js");
+                    throw new Error("Nie znaleziono pliku pl_pl_v2.js");
                 }
 
                 console.log('Ładowanie słownika...');
