@@ -22,27 +22,6 @@
             padding: 20px;
         }
 
-        .back-button {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background-color: #538d4e;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            font-size: 0.9rem;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            transition: background-color 0.2s ease;
-        }
-
-        .back-button:hover {
-            background-color: #456f3e;
-        }
-
         .header {
             text-align: center;
             margin-bottom: 30px;
@@ -201,11 +180,17 @@
 
         .loading {
             color: #818384;
-            font-size: 0.9rem;
+            font-size: 1.1rem;
             margin-bottom: 20px;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading.error {
+            color: #ff4444;
+            max-width: 600px;
         }
     </style>
-    <script src="pl_pl.js"></script>
 </head>
 <body>
     <div class="header">
@@ -296,6 +281,17 @@
                 <button class="key" data-key="m">M</button>
                 <button class="key wide" data-key="backspace">⌫</button>
             </div>
+            <div class="keyboard-row">
+                <button class="key" data-key="ą" data-display="a">Ą</button>
+                <button class="key" data-key="ć" data-display="c">Ć</button>
+                <button class="key" data-key="ę" data-display="e">Ę</button>
+                <button class="key" data-key="ł" data-display="l">Ł</button>
+                <button class="key" data-key="ń" data-display="n">Ń</button>
+                <button class="key" data-key="ó" data-display="o">Ó</button>
+                <button class="key" data-key="ś" data-display="s">Ś</button>
+                <button class="key" data-key="ź" data-display="z">Ź</button>
+                <button class="key" data-key="ż" data-display="z">Ż</button>
+            </div>
         </div>
 
         <div class="stats" id="stats">
@@ -305,6 +301,7 @@
 
     <div class="message" id="message"></div>
 
+    <script src="pl_pl.js"></script>
     <script>
         // Zmienne globalne
         let POLISH_WORDS = new Set();
@@ -326,74 +323,70 @@
         const loading = document.getElementById('loading');
         const gameContainer = document.getElementById('game-container');
 
-        // Funkcja normalizacji tekstu - usuwa polskie znaki diakrytyczne
-        function normalizeText(text) {
-            const polishChars = {
-                'ą': 'a', 'ć': 'c', 'ę': 'e', 'ł': 'l', 'ń': 'n', 'ó': 'o', 'ś': 's', 'ź': 'z', 'ż': 'z',
-                'Ą': 'A', 'Ć': 'C', 'Ę': 'E', 'Ł': 'L', 'Ń': 'N', 'Ó': 'O', 'Ś': 'S', 'Ź': 'Z', 'Ż': 'Z'
-            };
-            
-            return text.split('').map(char => polishChars[char] || char).join('');
-        }
-
+        // Ładowanie słownika
         function loadDictionary() {
-        // POLISH_WORDS_ARRAY pochodzi z pl_pl.js
-        const words = POLISH_WORDS_ARRAY.map(word => word.trim().toLowerCase());
-    
-        words.forEach(word => POLISH_WORDS.add(word));
-        FIVE_LETTER_WORDS = words.filter(word => word.length === 5);
-    
-        console.log(`Załadowano ${POLISH_WORDS.size} słów, ${FIVE_LETTER_WORDS.length} 5-literowych`);
-    
-        currentWord = getTodaysWord();
-        console.log('Dzisiejsze słowo:', currentWord.toUpperCase());
-    
-        loading.style.display = 'none';
-        gameContainer.style.display = 'block';
-        gameInitialized = true;
+            try {
+                if (typeof POLISH_WORDS_ARRAY === 'undefined') {
+                    throw new Error("Nie znaleziono pliku pl_pl.js");
+                }
+
+                console.log('Ładowanie słownika...');
+                // Wczytujemy słowa dokładnie tak jak są, tylko małe litery
+                const words = POLISH_WORDS_ARRAY.map(word => word.trim().toLowerCase());
+            
+                words.forEach(word => POLISH_WORDS.add(word));
+                FIVE_LETTER_WORDS = words.filter(word => word.length === 5);
+            
+                console.log(`✓ Załadowano ${POLISH_WORDS.size} słów.`);
+            
+                if (FIVE_LETTER_WORDS.length === 0) {
+                    // Fallback jeśli słownik jest pusty
+                    FIVE_LETTER_WORDS = ['kotek', 'domek', 'rower'];
+                    FIVE_LETTER_WORDS.forEach(w => POLISH_WORDS.add(w));
+                }
+
+                currentWord = getTodaysWord();
+                console.log('Dzisiejsze słowo (dla testów):', currentWord);
+            
+                loading.style.display = 'none';
+                gameContainer.style.display = 'block';
+                gameInitialized = true;
+
+            } catch (error) {
+                console.error('Błąd:', error);
+                loading.className = 'loading error';
+                loading.innerHTML = "Błąd: " + error.message;
+            }
         }
                 
-        // Funkcja do generowania seeda na podstawie godziny i minuty
         function generateSeed() {
             const now = new Date();
-            const hour = now.getHours();
-            const minute = now.getMinutes();
-            return hour * 100 + minute; // Przykład: 14:30 = 1430
+            // Zmiana słowa co minutę dla testów (zmień na 'day' lub 'hour' jeśli wolisz)
+            return now.getHours() * 100 + now.getMinutes();
         }
 
-        // Prosty generator pseudolosowy oparty na seedzie
         class SeededRandom {
-            constructor(seed) {
-                this.seed = seed;
-            }
-            
+            constructor(seed) { this.seed = seed; }
             next() {
                 this.seed = (this.seed * 9301 + 49297) % 233280;
                 return this.seed / 233280;
             }
         }
 
-        // Wybierz słowo na podstawie aktualnej godziny i minuty
         function getTodaysWord() {
-            if (FIVE_LETTER_WORDS.length === 0) return 'KOTEK'; // Fallback
-            
             const seed = generateSeed();
             const rng = new SeededRandom(seed);
             const index = Math.floor(rng.next() * FIVE_LETTER_WORDS.length);
             return FIVE_LETTER_WORDS[index].toUpperCase();
         }
 
-        // Inicjalizacja gry
         function init() {
             keyboard.addEventListener('click', handleKeyboardClick);
             document.addEventListener('keydown', handleKeyPress);
             updateTimeDisplay();
-            
-            // Ładuj słownik
-            loadDictionary();
+            setTimeout(loadDictionary, 100);
         }
 
-        // Aktualizacja wyświetlanej godziny
         function updateTimeDisplay() {
             const now = new Date();
             const hour = now.getHours().toString().padStart(2, '0');
@@ -401,7 +394,6 @@
             currentTimeDisplay.textContent = `${hour}:${minute}`;
         }
 
-        // Obsługa klawiatury na ekranie
         function handleKeyboardClick(e) {
             if (e.target.matches('.key')) {
                 const key = e.target.getAttribute('data-key');
@@ -409,7 +401,6 @@
             }
         }
 
-        // Obsługa klawiatury fizycznej
         function handleKeyPress(e) {
             if (!gameInitialized || gameOver) return;
             
@@ -417,12 +408,12 @@
                 handleInput('enter');
             } else if (e.key === 'Backspace') {
                 handleInput('backspace');
-            } else if (e.key.match(/[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/)) {
-                handleInput(normalizeText(e.key.toLowerCase()));
+            } else if (e.key.length === 1 && e.key.match(/[a-zA-ZąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/)) {
+                // Obsługa polskich znaków z klawiatury fizycznej
+                handleInput(e.key.toLowerCase());
             }
         }
 
-        // Główna logika wprowadzania
         function handleInput(key) {
             if (!gameInitialized || gameOver) return;
 
@@ -438,8 +429,12 @@
                     const tile = getCurrentTile();
                     tile.textContent = '';
                     tile.classList.remove('filled');
+                    tile.classList.remove('pop');
                 }
-            } else if (key.match(/[a-z]/) && currentTile < 5) {
+            } else if (currentTile < 5) {
+                // Ignorujemy klawisze funkcyjne jeśli przypadkiem tu trafią
+                if (key.length > 1) return; 
+
                 const tile = getCurrentTile();
                 tile.textContent = key.toUpperCase();
                 tile.classList.add('filled');
@@ -447,98 +442,111 @@
             }
         }
 
-        // Pobierz aktualny kafelek
         function getCurrentTile() {
             return board.children[currentRow].children[currentTile];
         }
 
-        // Pobierz aktualny rząd
         function getCurrentRow() {
             return board.children[currentRow];
         }
 
-        // Wyślij zgadywanie
         function submitGuess() {
             const row = getCurrentRow();
-            const guess = Array.from(row.children).map(tile => tile.textContent).join('');
+            const tiles = Array.from(row.children);
+            
+            // ZMIANA: Pobieramy tekst bezpośrednio z kafelka, bez normalizacji
+            const guess = tiles.map(tile => tile.textContent).join('');
             
             if (!isValidWord(guess)) {
-                showMessage('Nieprawidłowe słowo!');
+                showMessage('Nie ma takiego słowa!');
+                shakeRow(row); // Dodatkowy efekt wizualny
                 return;
             }
 
-            guesses.push(guess);
             checkGuess(guess, row);
             
             if (guess === currentWord) {
                 gameOver = true;
-                setTimeout(() => showMessage('Gratulacje!'), 500);
+                setTimeout(() => showMessage('Gratulacje! 🎉'), 1500);
             } else if (currentRow === 5) {
                 gameOver = true;
-                setTimeout(() => showMessage(`Prawidłowe słowo: ${currentWord}`), 500);
+                setTimeout(() => showMessage(`Koniec gry! Słowo to: ${currentWord}`), 1500);
             } else {
                 currentRow++;
                 currentTile = 0;
             }
         }
 
-        // Sprawdź czy słowo jest prawidłowe
         function isValidWord(word) {
             if (word.length !== 5) return false;
-            
-            const normalizedGuess = normalizeText(word.toLowerCase());
-            return POLISH_WORDS.has(normalizedGuess);
+            // ZMIANA: Sprawdzamy słowo dokładnie tak jak jest (po zamianie na małe litery)
+            return POLISH_WORDS.has(word.toLowerCase());
         }
 
-        // Sprawdź zgadywanie i oznacz kafelki
+        // Efekt trzęsienia przy błędzie
+        function shakeRow(row) {
+            row.style.transform = 'translateX(-5px)';
+            setTimeout(() => row.style.transform = 'translateX(5px)', 100);
+            setTimeout(() => row.style.transform = 'translateX(-5px)', 200);
+            setTimeout(() => row.style.transform = 'translateX(5px)', 300);
+            setTimeout(() => row.style.transform = 'translateX(0)', 400);
+        }
+
         function checkGuess(guess, row) {
-            const letters = guess.split('');
+            const guessLetters = guess.split('');
             const targetLetters = currentWord.split('');
-            const result = ['absent', 'absent', 'absent', 'absent', 'absent'];
+            const result = new Array(5).fill('absent');
             
-            // Najpierw oznacz dokładne dopasowania
+            // Kopia liter do śledzenia liczby wystąpień
+            const targetCounts = {};
+            targetLetters.forEach(l => targetCounts[l] = (targetCounts[l] || 0) + 1);
+
+            // 1. Sprawdź zielone (dokładne trafienia)
             for (let i = 0; i < 5; i++) {
-                if (letters[i] === targetLetters[i]) {
+                if (guessLetters[i] === targetLetters[i]) {
                     result[i] = 'correct';
-                    targetLetters[i] = null; // Usuń użytą literę
+                    targetCounts[guessLetters[i]]--;
                 }
             }
             
-            // Następnie sprawdź obecne litery w złych pozycjach
+            // 2. Sprawdź żółte (obecne, ale w złym miejscu)
             for (let i = 0; i < 5; i++) {
-                if (result[i] === 'absent' && targetLetters.includes(letters[i])) {
+                if (result[i] === 'absent' && targetCounts[guessLetters[i]] > 0) {
                     result[i] = 'present';
-                    targetLetters[targetLetters.indexOf(letters[i])] = null;
+                    targetCounts[guessLetters[i]]--;
                 }
             }
             
-            // Animuj kafelki
-            letters.forEach((letter, index) => {
+            // Animacja i kolorowanie
+            guessLetters.forEach((letter, index) => {
                 const tile = row.children[index];
                 setTimeout(() => {
                     tile.classList.add(result[index]);
+                    // Kolorowanie klawiatury
                     updateKeyboard(letter, result[index]);
-                }, index * 100);
+                }, index * 200); // Wolniejsza animacja dla lepszego efektu
             });
         }
 
-        // Aktualizuj klawiaturę
-        function updateKeyboard(letter, result) {
-            const key = keyboard.querySelector(`[data-key="${letter.toLowerCase()}"]`);
-            if (key) {
-                const currentClass = key.classList.contains('correct') ? 'correct' :
-                                   key.classList.contains('present') ? 'present' : 'none';
-                
-                if (result === 'correct' || (result === 'present' && currentClass !== 'correct')) {
-                    key.classList.remove('absent', 'present', 'correct');
-                    key.classList.add(result);
-                } else if (result === 'absent' && currentClass === 'none') {
-                    key.classList.add('absent');
-                }
+        function updateKeyboard(letter, status) {
+            // Szukamy klawisza po data-key lub data-display
+            const key = document.querySelector(`.key[data-key="${letter.toLowerCase()}"]`) || 
+                        document.querySelector(`.key[data-display="${letter.toLowerCase()}"]`);
+            
+            if (!key) return;
+
+            // Priorytety kolorów: correct > present > absent
+            if (status === 'correct') {
+                key.classList.remove('present', 'absent');
+                key.classList.add('correct');
+            } else if (status === 'present' && !key.classList.contains('correct')) {
+                key.classList.remove('absent');
+                key.classList.add('present');
+            } else if (status === 'absent' && !key.classList.contains('correct') && !key.classList.contains('present')) {
+                key.classList.add('absent');
             }
         }
 
-        // Pokaż wiadomość
         function showMessage(text) {
             message.textContent = text;
             message.classList.add('show');
@@ -547,5 +555,11 @@
             }, 2000);
         }
 
-        // Uruchom grę
-        init();
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    </script>
+</body>
+</html>
